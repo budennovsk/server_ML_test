@@ -10,6 +10,7 @@
     <ItemGroup>
       <PackageReference Include="Microsoft.Data.Analysis" Version="0.22.0-preview.24271.1" />
       <PackageReference Include="Microsoft.ML" Version="4.0.0-preview.24271.1" />
+      <PackageReference Include="Microsoft.ML.TimeSeries" Version="4.0.0-preview.24271.1" />
     </ItemGroup>
 
 </Project>
