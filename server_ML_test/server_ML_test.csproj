@@ -12,7 +12,6 @@
       <PackageReference Include="Microsoft.ML" Version="4.0.0-preview.24271.1" />
       <PackageReference Include="Microsoft.ML.TimeSeries" Version="4.0.0-preview.24271.1" />
       <PackageReference Include="ScottPlot" Version="5.0.34" />
-      <PackageReference Include="System.Drawing.Common" Version="9.0.0-preview.4.24267.1" />
     </ItemGroup>
 
 </Project>

@@ -26,8 +26,11 @@ class MainStart
         var train_data = result_tuple.Item2;
         var forecast_data = result_tuple.Item1;
 
+        var forecast_lower = result_tuple.Item3;
+        var forecast_upper = result_tuple.Item4;
 
-        PlotTest(train_data, forecast_data);
+
+        PlotTest(train_data, forecast_data, forecast_lower,forecast_upper);
     }
 
 
@@ -61,79 +64,36 @@ class MainStart
         return (dataPathTrain, dataPathTest);
     }
 
-    static void PlotTest(float[] train_data, float[] forecast_data)
+    static void PlotTest(float[] train_data, float[] forecast_data, float[] forecast_lower,float[] forecast_upper)
     {
         
         int[] numbers_train = Enumerable.Range(1, 50).ToArray();
         int[] numbers_forecast = Enumerable.Range(51, forecast_data.Length).ToArray();
+        int[] numbers_forecast_lower = Enumerable.Range(51, forecast_lower.Length).ToArray();
+        int[] numbers_forecast_upper = Enumerable.Range(51, forecast_upper.Length).ToArray();
         
+        ScottPlot.Plot myPlot = new();
+        var train_plot = myPlot.Add.Scatter(numbers_train, train_data);
+        var forecast_plot = myPlot.Add.Scatter(numbers_forecast, forecast_data);
+        var forecast_lower_plot = myPlot.Add.Scatter(numbers_forecast_lower, forecast_lower);
+        var forecast_upper_plot = myPlot.Add.Scatter(numbers_forecast_upper, forecast_upper);
+
+        train_plot.LegendText = "Train";
+        forecast_plot.LegendText = "Forecast";
+        forecast_lower_plot.LegendText = "lower";
+        forecast_upper_plot.LegendText = "upper";
         
-        Bitmap bmp = new Bitmap(800, 600);
-        using (Graphics g = Graphics.FromImage(bmp))
-        {
-            g.Clear(Color.White);
-
-            // Рисуем обучающие данные (синий)
-            DrawGraph(g, numbers_train, train_data, Color.Blue);
-
-            // Рисуем данные прогноза (красный)
-            DrawGraph(g, numbers_forecast, forecast_data, Color.Red);
-        }
-
-        // Сохраняем график в файл PNG
-        bmp.Save("plot.png", System.Drawing.Imaging.ImageFormat.Png);
-    }
-    static void DrawGraph(Graphics g, int[] xValues, float[] yValues, Color color)
-    {
-        Pen pen = new Pen(color);
-        int width = 800;
-        int height = 600;
-        int padding = 50;
-        float scaleX = (float)(width - 2 * padding) / (xValues.Length - 1);
-        float scaleY = (float)(height - 2 * padding) / (MaxValue(yValues) - MinValue(yValues));
-
-        int xOffset = color == Color.Blue ? 0 : 400; // Смещение для красных данных
-
-        for (int i = 0; i < xValues.Length - 1; i++)
-        {
-            int x1 = (int)(padding + i * scaleX + xOffset);
-            int y1 = (int)(height - padding - (yValues[i] - MinValue(yValues)) * scaleY);
-            int x2 = (int)(padding + (i + 1) * scaleX + xOffset);
-            int y2 = (int)(height - padding - (yValues[i + 1] - MinValue(yValues)) * scaleY);
-            g.DrawLine(pen, x1, y1, x2, y2);
-        }
-
-        pen.Dispose();
-    }
-
-    static float MinValue(float[] array)
-    {
-        float min = float.MaxValue;
-        foreach (float value in array)
-        {
-            if (value < min)
-                min = value;
-        }
-        return min;
+        myPlot.Title("Forecast C# ");
+        myPlot.XLabel("Время");
+        myPlot.YLabel("SALES VOL");
+        myPlot.ShowLegend();
+        myPlot.SavePng("plot.png", 800, 600);
+ 
     }
     
 
-    static float MaxValue(float[] array)
-    {
-        float max = float.MinValue;
-        foreach (float value in array)
-        {
-            if (value > max)
-                max = value;
-        }
-        return max;
-    }
 
-
-
-
-
-    static (float[],float[]) ModelTrain((string, string) df)
+    static (float[],float[],float[],float[]) ModelTrain((string, string) df)
     {
         string path_train = df.Item1;
         string path_test = df.Item2;
@@ -166,7 +126,7 @@ class MainStart
         Console.WriteLine($"Forecast for the next 7 time points: {string.Join(", ", forecast.forecasted_count)}");
         // var forecast_string = string.Join(", ", forecast.forecasted_count);
         var df_train = DataFrame.LoadCsv(path_train);
-
+        
         
 
         // Считываем все строки из файла
@@ -199,7 +159,7 @@ class MainStart
         // }
         //
 
-        return (forecast.forecasted_count,floatArray);
+        return (forecast.forecasted_count,floatArray, forecast.lower_count,forecast.upper_count);
 
     }
 }
