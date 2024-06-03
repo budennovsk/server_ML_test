@@ -25,9 +25,9 @@ class MainStart
         // Console.WriteLine(result_tuple);
         var train_data = result_tuple.Item2;
         var forecast_data = result_tuple.Item1;
-        
-        
-        PlotTest(train_data,forecast_data);
+
+
+        PlotTest(train_data, forecast_data);
     }
 
 
@@ -60,54 +60,80 @@ class MainStart
 
         return (dataPathTrain, dataPathTest);
     }
-    static void PlotTest(float[] train_data,System.String forecast_data)
+
+    static void PlotTest(float[] train_data, float[] forecast_data)
     {
-        Console.WriteLine(train_data.Length);
-        int[] numbers_train = Enumerable.Range(1, 50).ToArray();
-        Console.WriteLine(numbers_train.Length);
         
-        // Пример данных для графика
-        int[] X = { 1, 2, 3, 4, 5 }; // Пример значений X
-        float[] Y = { 1.5f, 2.3f, 3.1f, 4.2f, 5.5f }; // Пример значений Y
-
-        // Создаем новое изображение
-        using (Bitmap bmp = new Bitmap(800, 600))
+        int[] numbers_train = Enumerable.Range(1, 50).ToArray();
+        int[] numbers_forecast = Enumerable.Range(51, forecast_data.Length).ToArray();
+        
+        
+        Bitmap bmp = new Bitmap(800, 600);
+        using (Graphics g = Graphics.FromImage(bmp))
         {
-            // Создаем объект Graphics для рисования на изображении
-            using (Graphics g = Graphics.FromImage(bmp))
-            {
-                // Очищаем изображение белым цветом
-                g.Clear(Color.White);
+            g.Clear(Color.White);
 
-                // Создаем объект Pen для рисования графика
-                using (Pen pen = new Pen(Color.Blue))
-                {
-                    // Масштабируем значения
-                    float scaleX = bmp.Width / (float)(X.Length - 1);
-                    float scaleY = bmp.Height / (float)(Y.Max());
-                    // Рисуем график
-                    for (int i = 0; i < numbers_train.Length - 1; i++)
-                    {
-                        float x1 = numbers_train[i] * scaleX;
-                        float y1 = bmp.Height - train_data[i] * scaleY;
-                        float x2 = numbers_train[i + 1] * scaleX;
-                        float y2 = bmp.Height - train_data[i + 1] * scaleY;
-                        g.DrawLine(pen, x1, y1, x2, y2);
-                    }
-                }
-            }
+            // Рисуем обучающие данные (синий)
+            DrawGraph(g, numbers_train, train_data, Color.Blue);
 
-            // Сохраняем изображение в файл
-            bmp.Save("gggg.png", System.Drawing.Imaging.ImageFormat.Png);
-
+            // Рисуем данные прогноза (красный)
+            DrawGraph(g, numbers_forecast, forecast_data, Color.Red);
         }
+
+        // Сохраняем график в файл PNG
+        bmp.Save("plot.png", System.Drawing.Imaging.ImageFormat.Png);
+    }
+    static void DrawGraph(Graphics g, int[] xValues, float[] yValues, Color color)
+    {
+        Pen pen = new Pen(color);
+        int width = 800;
+        int height = 600;
+        int padding = 50;
+        float scaleX = (float)(width - 2 * padding) / (xValues.Length - 1);
+        float scaleY = (float)(height - 2 * padding) / (MaxValue(yValues) - MinValue(yValues));
+
+        int xOffset = color == Color.Blue ? 0 : 400; // Смещение для красных данных
+
+        for (int i = 0; i < xValues.Length - 1; i++)
+        {
+            int x1 = (int)(padding + i * scaleX + xOffset);
+            int y1 = (int)(height - padding - (yValues[i] - MinValue(yValues)) * scaleY);
+            int x2 = (int)(padding + (i + 1) * scaleX + xOffset);
+            int y2 = (int)(height - padding - (yValues[i + 1] - MinValue(yValues)) * scaleY);
+            g.DrawLine(pen, x1, y1, x2, y2);
+        }
+
+        pen.Dispose();
+    }
+
+    static float MinValue(float[] array)
+    {
+        float min = float.MaxValue;
+        foreach (float value in array)
+        {
+            if (value < min)
+                min = value;
+        }
+        return min;
     }
     
 
-    
+    static float MaxValue(float[] array)
+    {
+        float max = float.MinValue;
+        foreach (float value in array)
+        {
+            if (value > max)
+                max = value;
+        }
+        return max;
+    }
 
 
-    static (System.String,float[]) ModelTrain((string, string) df)
+
+
+
+    static (float[],float[]) ModelTrain((string, string) df)
     {
         string path_train = df.Item1;
         string path_test = df.Item2;
@@ -125,10 +151,10 @@ class MainStart
         var forecastingPipeline = mlContext.Forecasting.ForecastBySsa(
             outputColumnName: "forecasted_count",
             inputColumnName: "count",
-            windowSize: 7,
-            seriesLength: 12,
-            trainSize: 40,
-            horizon: 7,
+            windowSize: 8,
+            seriesLength: 30,
+            trainSize: 50,
+            horizon: 50,
             confidenceLevel: 0.95f,
             confidenceLowerBoundColumn: "lower_count",
             confidenceUpperBoundColumn: "upper_count");
@@ -138,8 +164,9 @@ class MainStart
         var forecastEngine = forecaster.CreateTimeSeriesEngine<ModelInput, ModelOutput>(mlContext);
         ModelOutput forecast = forecastEngine.Predict();
         Console.WriteLine($"Forecast for the next 7 time points: {string.Join(", ", forecast.forecasted_count)}");
-        var forecast_string = string.Join(", ", forecast.forecasted_count);
+        // var forecast_string = string.Join(", ", forecast.forecasted_count);
         var df_train = DataFrame.LoadCsv(path_train);
+
         
 
         // Считываем все строки из файла
@@ -172,7 +199,7 @@ class MainStart
         // }
         //
 
-        return (forecast_string,floatArray);
+        return (forecast.forecasted_count,floatArray);
 
     }
 }
